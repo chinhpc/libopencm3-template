@@ -1,12 +1,12 @@
-PROJECT = STM32F030F4P6
+PROJECT = STM32F411VET6
 BUILD_DIR = build
 
 SHARED_DIR = rtc include
 CFILES = my-project.c
 
 # TODO - you will need to edit these two lines!
-DEVICE=stm32f030f4p6
-OOCD_FILE = board/stm32f0discovery.cfg
+DEVICE=stm32f411vet6
+OOCD_FILE = board/stm32f4discovery.cfg
 
 # You shouldn't have to edit anything below here.
 VPATH += $(SHARED_DIR)
