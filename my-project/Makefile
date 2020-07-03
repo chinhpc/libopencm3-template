@@ -1,12 +1,14 @@
 PROJECT = STM32F411VET6
 BUILD_DIR = build
 
-SHARED_DIR = rtc include
-CFILES = my-project.c
+SHARED_DIR = rtc include shared
+CFILES = usart_stdio.c trace_stdio.c trace.c
 
 # TODO - you will need to edit these two lines!
 DEVICE=stm32f411vet6
-OOCD_FILE = board/stm32f4discovery.cfg
+#OOCD_FILE = board/stm32f4discovery.cfg
+OOCD_INTERFACE=stlink-v2
+OOCD_TARGET=stm32f4x
 
 # You shouldn't have to edit anything below here.
 VPATH += $(SHARED_DIR)
