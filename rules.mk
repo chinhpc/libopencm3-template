@@ -109,6 +109,7 @@ LDLIBS += -Wl,--start-group -lc -lgcc -lnosys -Wl,--end-group
 
 all: $(PROJECT).elf $(PROJECT).bin
 flash: $(PROJECT).flash
+debug: $(PROJECT).debug
 
 # error if not using linker script generator
 ifeq (,$(DEVICE))
@@ -154,17 +155,23 @@ $(PROJECT).elf: $(OBJS) $(LDSCRIPT) $(LIBDEPS)
 %.flash: %.elf
 	@printf "  FLASH\t$<\n"
 ifeq (,$(OOCD_FILE))
-	$(Q)(echo "halt; program $(*).elf verify reset" | nc -4 localhost 4444 2>/dev/null) || \
+	$(Q)(echo "halt; program $(realpath $(*).elf) verify reset" | nc -4 localhost 4444 2>/dev/null) || \
 		$(OOCD) -f interface/$(OOCD_INTERFACE).cfg \
 		-f target/$(OOCD_TARGET).cfg \
 		-c "program $(*).elf verify reset exit" \
 		$(NULL)
 else
-	$(Q)(echo "halt; program $(*).elf verify reset" | nc -4 localhost 4444 2>/dev/null) || \
+	$(Q)(echo "halt; program $(realpath $(*).elf) verify reset" | nc -4 localhost 4444 2>/dev/null) || \
 		$(OOCD) -f $(OOCD_FILE) \
 		-c "program $(*).elf verify reset exit" \
 		$(NULL)
 endif
+
+%.debug: %.flash
+	$(Q)nohup $(OOCD) -f $(TRACE_CFG_FILE) >> openocd.log 2>&1 &
+	$(Q)sleep 0.1
+	$(Q)python3 $(SWO_PARSER_DIR)/swo_parser.py
+	$(Q)killall $(OOCD)
 
 clean:
 	rm -rf $(BUILD_DIR) $(GENERATED_BINS)

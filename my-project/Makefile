@@ -1,5 +1,9 @@
 PROJECT = STM32F411VET6
 BUILD_DIR = build
+CURRENT_DIR = $(shell pwd)
+#CURRENT_DIR = $(notdir $(shell pwd))
+SWO_PARSER_DIR = ../SWO-Parser
+TRACE_CFG_FILE = ../configure-trace.openocd
 
 SHARED_DIR = rtc include shared
 CFILES = usart_stdio.c trace_stdio.c trace.c
@@ -13,7 +17,7 @@ OOCD_TARGET=stm32f4x
 # You shouldn't have to edit anything below here.
 VPATH += $(SHARED_DIR)
 INCLUDES += $(patsubst %,-I%, . $(SHARED_DIR))
-OPENCM3_DIR=../libopencm3
+OPENCM3_DIR =../libopencm3
 
 include $(OPENCM3_DIR)/mk/genlink-config.mk
 include ../rules.mk
