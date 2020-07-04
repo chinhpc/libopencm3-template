@@ -167,7 +167,7 @@ else
 		$(NULL)
 endif
 
-%.debug: %.flash
+%.debug: #%.flash
 	$(Q)nohup $(OOCD) -f $(TRACE_CFG_FILE) >> openocd.log 2>&1 &
 	$(Q)sleep 0.1
 	$(Q)python3 $(SWO_PARSER_DIR)/swo_parser.py
