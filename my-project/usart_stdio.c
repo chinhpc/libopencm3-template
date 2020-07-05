@@ -23,20 +23,102 @@
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/usart.h>
 #include <stdio.h>
-#include <errno.h>
-#include <stddef.h>
-#include <sys/types.h>
+//#include <errno.h>
+//#include <stddef.h>
+//#include <sys/types.h>
+//#include <stdlib.h>
+#include <ctype.h>
 
 static ssize_t _iord(void *_cookie, char *_buf, size_t _n);
 static ssize_t _iowr(void *_cookie, const char *_buf, size_t _n);
+void get_buffered_line(uint32_t dev);
+
+/*
+ * This is a pretty classic ring buffer for characters
+ */
+#define BUFLEN 127
+
+static uint16_t start_ndx;
+static uint16_t end_ndx;
+static char buf[BUFLEN+1];
+#define buf_len ((end_ndx - start_ndx) % BUFLEN)
+static inline int inc_ndx(int n) { return ((n + 1) % BUFLEN); }
+static inline int dec_ndx(int n) { return (((n + BUFLEN) - 1) % BUFLEN); }
+
+/* back up the cursor one space */
+static inline void back_up(uint32_t dev)
+{
+	end_ndx = dec_ndx(end_ndx);
+	usart_send_blocking(dev, '\010');
+	usart_send_blocking(dev, ' ');
+	usart_send_blocking(dev, '\010');
+}
+
+/*
+ * A buffered line editing function.
+ */
+void get_buffered_line(uint32_t dev)
+{
+	char c;
+
+	if (start_ndx != end_ndx) {
+		return;
+	}
+	while (1) {
+		c = usart_recv_blocking(dev);
+		if (c == '\r') {
+			buf[end_ndx] = '\n';
+			end_ndx = inc_ndx(end_ndx);
+			buf[end_ndx] = '\0';
+			usart_send_blocking(dev, '\r');
+			usart_send_blocking(dev, '\n');
+			return;
+		}
+		/* ^H or DEL erase a character */
+		if ((c == '\010') || (c == '\177')) {
+			if (buf_len == 0) {
+				usart_send_blocking(dev, '\a');
+			} else {
+				back_up(dev);
+			}
+		/* ^W erases a word */
+		} else if (c == 0x17) {
+			while ((buf_len > 0) &&
+					(!(isspace((int) buf[end_ndx])))) {
+				back_up(dev);
+			}
+		/* ^U erases the line */
+		} else if (c == 0x15) {
+			while (buf_len > 0) {
+				back_up(dev);
+			}
+		/* Non-editing character so insert it */
+		} else {
+			if (buf_len == (BUFLEN - 1)) {
+				usart_send_blocking(dev, '\a');
+			} else {
+				buf[end_ndx] = c;
+				end_ndx = inc_ndx(end_ndx);
+				usart_send_blocking(dev, c);
+			}
+		}
+	}
+}
 
 static ssize_t _iord(void *_cookie, char *_buf, size_t _n)
 {
-	/* dont support reading now */
-	(void)_cookie;
-	(void)_buf;
-	(void)_n;
-	return 0;
+	uint32_t dev = (uint32_t)_cookie;
+	int	my_len;
+
+	get_buffered_line(dev);
+	my_len = 0;
+	while ((buf_len > 0) && (_n > 0)) {
+		*_buf++ = buf[start_ndx];
+		start_ndx = inc_ndx(start_ndx);
+		my_len++;
+		_n--;
+	}
+	return my_len; /* return the length we got */
 }
 
 static ssize_t _iowr(void *_cookie, const char *_buf, size_t _n)
