@@ -1,19 +1,29 @@
 /*
  * support for stdio output to a trace port
- * Karl Palsson, 2014 <karlp@remake.is>
  */
-
-#include <errno.h>
-#include <stdio.h>
+#include <libopencm3/cm3/common.h>
+#include <libopencm3/cm3/memorymap.h>
+#include <libopencm3/cm3/itm.h>
+#include <stdint.h>
 #include <unistd.h>
-
-#include "trace.h"
+#include <errno.h>
 
 #ifndef STIMULUS_STDIO
 #define STIMULUS_STDIO 0
 #endif
 
+void trace_send_blocking8(int stimulus_port, char c);
 int _write(int file, char *ptr, int len);
+
+void trace_send_blocking8(int stimulus_port, char c)
+{
+	if (!(ITM_TER[0] & (1<<stimulus_port))) {
+		return;
+	}
+	while (!(ITM_STIM8(stimulus_port) & ITM_STIM_FIFOREADY));
+	ITM_STIM8(stimulus_port) = c;
+}
+
 int _write(int file, char *ptr, int len)
 {
 	int i;

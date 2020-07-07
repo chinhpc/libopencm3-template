@@ -1,37 +1,13 @@
-/*
- * This file is part of the libopencm3 project.
- *
- * Copyright (C) 2009 Uwe Hermann <uwe@hermann-uwe.de>
- * Copyright (C) 2011 Stephen Caudle <scaudle@doceme.com>
- *
- * This library is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this library.  If not, see <http://www.gnu.org/licenses/>.
- */
 
 #define _GNU_SOURCE
-#include <libopencm3/stm32/rcc.h>
-#include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/usart.h>
-#include <stdio.h>
-//#include <errno.h>
-//#include <stddef.h>
-//#include <sys/types.h>
-//#include <stdlib.h>
 #include <ctype.h>
+#include "usart_stdio.h"
 
 static ssize_t _iord(void *_cookie, char *_buf, size_t _n);
 static ssize_t _iowr(void *_cookie, const char *_buf, size_t _n);
-void get_buffered_line(uint32_t dev);
+static void get_buffered_line(uint32_t dev);
+static inline void back_up(uint32_t dev);
 
 /*
  * This is a pretty classic ring buffer for characters
@@ -57,7 +33,7 @@ static inline void back_up(uint32_t dev)
 /*
  * A buffered line editing function.
  */
-void get_buffered_line(uint32_t dev)
+static void get_buffered_line(uint32_t dev)
 {
 	char c;
 
@@ -108,10 +84,10 @@ void get_buffered_line(uint32_t dev)
 static ssize_t _iord(void *_cookie, char *_buf, size_t _n)
 {
 	uint32_t dev = (uint32_t)_cookie;
-	int	my_len;
+	int	my_len = 0;
 
 	get_buffered_line(dev);
-	my_len = 0;
+
 	while ((buf_len > 0) && (_n > 0)) {
 		*_buf++ = buf[start_ndx];
 		start_ndx = inc_ndx(start_ndx);
@@ -133,8 +109,7 @@ static ssize_t _iowr(void *_cookie, const char *_buf, size_t _n)
 	return written;
 }
 
-
-static FILE *usart_setup(uint32_t dev)
+FILE *usart_setup(uint32_t dev)
 {
 	/* Setup USART2 parameters. */
 	usart_set_baudrate(dev, 115200);
@@ -152,57 +127,4 @@ static FILE *usart_setup(uint32_t dev)
 	/* Do not buffer the serial line */
 	setvbuf(fp, NULL, _IONBF, 0);
 	return fp;
-
-}
-
-static void clock_setup(void)
-{
-	rcc_clock_setup_pll(&rcc_hse_8mhz_3v3[RCC_CLOCK_3V3_84MHZ]);
-	//rcc_clock_setup_pll(&rcc_hsi_configs[RCC_CLOCK_3V3_84MHZ]);
-	/* Enable GPIOC clock for LED & USARTs. */
-	rcc_periph_clock_enable(RCC_GPIOD);
-	rcc_periph_clock_enable(RCC_GPIOA);
-
-	/* Enable clocks for USART2. */
-	rcc_periph_clock_enable(RCC_USART2);
-}
-
-static void gpio_setup(void)
-{
-	/* Setup GPIO pin GPIO8/9 on GPIO port D for LEDs. */
-	gpio_mode_setup(GPIOD, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO13 | GPIO15);
-
-	/* Setup GPIO pins for USART2 transmit and receive. */
-	gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO2 | GPIO3);
-
-	/* Setup USART2 TX pin as alternate function. */
-	gpio_set_af(GPIOA, GPIO_AF7, GPIO2 | GPIO3);
-}
-
-int main(void)
-{
-	int i, j = 0, c = 0;
-	FILE *fp;
-
-	clock_setup();
-	gpio_setup();
-
-	fp = usart_setup(USART2);
-
-	/* Blink the LED (PD13, PD15) on the board with every transmitted byte. */
-	gpio_set(GPIOD,GPIO13);
-	gpio_clear(GPIOC, GPIO15);
-	while (1) {
-		gpio_toggle(GPIOD, GPIO13 | GPIO15);	/* LED on/off */
-
-		fprintf(fp, "Pass: %d\n\r", c);
-		printf("Pass: %d\n\r", c);
-
-		c = (c == 200) ? 0 : c + 1;	/* Increment c. */
-
-		for (i = 0; i < 1000000; i++) {	/* Wait a bit. */
-			__asm__("NOP");
-		}
-	}
-	return 0;
 }

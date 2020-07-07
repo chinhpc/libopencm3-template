@@ -5,8 +5,8 @@ CURRENT_DIR = $(shell pwd)
 SWO_PARSER_DIR = ../SWO-Parser
 TRACE_CFG_FILE = ../configure-trace.openocd
 
-SHARED_DIR = rtc include shared
-CFILES = usart_stdio.c trace_stdio.c trace.c
+SHARED_DIR = include shared
+CFILES = usart_stdio.c trace_stdio.c my-project.c
 
 # TODO - you will need to edit these two lines!
 DEVICE=stm32f411vet6
