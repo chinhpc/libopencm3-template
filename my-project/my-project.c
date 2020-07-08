@@ -34,25 +34,25 @@ static void gpio_setup(void)
 int main(void)
 {
 	int i, j = 0;
-	FILE *fp = usart_setup(USART2);
+	FILE *fp;
 	char local_buf[100];
 	char* local_ptr;
 	clock_setup();
 	gpio_setup();
-
+	fp = usart_setup(USART2);
 	/* Blink the LED (PD13, PD15) on the board with every transmitted byte. */
 	gpio_set(GPIOD,GPIO13);
 	gpio_clear(GPIOC, GPIO15);
 	while (1) {
 		gpio_toggle(GPIOD, GPIO13 | GPIO15);	/* LED on/off */
-
-		fprintf(fp, "Enter your messages: ");
+		printf("Please enter your messages\n");
+		fprintf(fp, "\n\rEnter your messages: ");
 		fflush(fp);
 		local_ptr = fgets(local_buf, 100, fp);
 
 		if (local_ptr != NULL){
-			fprintf(fp, "Received messages: %s", local_buf);
-			printf("Get %zi character\n\r", strlen(local_ptr));
+			fprintf(fp, "Received messages: %s\r", local_buf);
+			printf("Get %hu character\n\r", (uint8_t)strlen(local_ptr));
 		}
 		else{
 			fprintf(fp, "Can\'t get any character\n\r");

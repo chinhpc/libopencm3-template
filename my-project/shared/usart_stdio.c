@@ -14,8 +14,8 @@ static inline void back_up(uint32_t dev);
  */
 #define BUFLEN 127
 
-static uint16_t start_ndx;
-static uint16_t end_ndx;
+static uint16_t start_ndx = 0;
+static uint16_t end_ndx = 0;
 static char buf[BUFLEN+1];
 #define buf_len ((end_ndx - start_ndx) % BUFLEN)
 static inline int inc_ndx(int n) { return ((n + 1) % BUFLEN); }
@@ -87,7 +87,10 @@ static ssize_t _iord(void *_cookie, char *_buf, size_t _n)
 	int	my_len = 0;
 
 	get_buffered_line(dev);
-
+	if (buf_len <= 0){
+		start_ndx = end_ndx = 0;
+		return 1;
+	}
 	while ((buf_len > 0) && (_n > 0)) {
 		*_buf++ = buf[start_ndx];
 		start_ndx = inc_ndx(start_ndx);
