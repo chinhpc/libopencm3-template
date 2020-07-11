@@ -6,6 +6,9 @@
 #include <libopencm3/stm32/usart.h>
 #include <string.h>
 #include "usart_stdio.h"
+#include "command.h"
+
+FILE *fp;
 
 static void clock_setup(void)
 {
@@ -34,9 +37,9 @@ static void gpio_setup(void)
 int main(void)
 {
 	int i, j = 0;
-	FILE *fp;
 	char local_buf[100];
 	char* local_ptr;
+	int_command();
 	clock_setup();
 	gpio_setup();
 	fp = usart_setup(USART2);
@@ -51,19 +54,22 @@ int main(void)
 		local_ptr = fgets(local_buf, 100, fp);
 
 		if (local_ptr != NULL){
-			fprintf(fp, "Received messages: %s\r", local_buf);
-			printf("Get %hu character\n\r", (uint8_t)strlen(local_ptr));
+			printf("Get %hu character\n", (uint8_t)strlen(local_ptr));
+			if(!run_command(local_ptr)){
+				printf("Not a command\n");
+				fprintf(fp, "Received messages: %s", local_ptr);
+			}
 		}
 		else{
 			fprintf(fp, "Can\'t get any character\n\r");
 			printf("Can\'t get any character\n\r");
 		}
 
-//		c = (c == 200) ? 0 : c + 1;	/* Increment c. */
+		// c = (c == 200) ? 0 : c + 1;	/* Increment c. */
 
-		for (i = 0; i < 1000000; i++) {	/* Wait a bit. */
-			__asm__("NOP");
-		}
+		// for (i = 0; i < 1000000; i++) {	// Wait a bit
+		// 	__asm__("NOP");
+		// }
 	}
 	return 0;
 }
