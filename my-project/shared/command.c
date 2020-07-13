@@ -14,7 +14,7 @@ uint8_t command_index = 0;
 void int_command(void);
 int run_command(char* cmd_string);
 
-#define test_code 1
+#define test_code 0
 #if (test_code == 1)
 #define fp stdout
 #else
