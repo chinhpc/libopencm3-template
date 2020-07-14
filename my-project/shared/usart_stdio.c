@@ -89,7 +89,7 @@ static ssize_t _iord(void *_cookie, char *_buf, size_t _n)
 	get_buffered_line(dev);
 	if (buf_len <= 0){
 		start_ndx = end_ndx = 0;
-		return 1;
+		return 0;
 	}
 	while ((buf_len > 0) && (_n > 0)) {
 		*_buf++ = buf[start_ndx];
