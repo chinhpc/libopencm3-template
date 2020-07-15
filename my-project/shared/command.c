@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <libopencmsis/core_cm3.h>
 
 #define register_command(cmd, func) \
 command[command_index].command_string = cmd; \
@@ -47,6 +48,7 @@ void goto_user_app(uint32_t address)
 	uint32_t *user_vtor = (uint32_t *)address;
 	uint32_t sp = user_vtor[0];
 	uint32_t pc = user_vtor[1];
+	SCB_VTOR = address;
 	__asm__ __volatile__("mov sp,%0\n\t"
 		"bx %1\n\t"
 		: /* no output */
@@ -62,29 +64,29 @@ void jump_command(int argc, char **argv)
 	if(argc > 2 || argc < 1) fprintf(fp, "Warning: Only support 1 arguments\n\r");
 }
 
-int xmodemReceive(unsigned char *dest, int destsz);
+//int xmodemReceive(unsigned char *dest, int destsz);
 
-void get_app(int argc, char **argv)
-{
-	char* buff = malloc(65536);
-	int st;
+// void get_app(int argc, char **argv)
+// {
+// 	char* buff = malloc(65536);
+// 	int st;
 
-	printf ("Send data using the xmodem protocol from your terminal emulator now...\n");
-	st = xmodemReceive(buff, 65536);
-	if (st < 0) {
-		printf ("Xmodem receive error: status: %d\n", st);
-	}
-	else  {
-		printf ("Xmodem successfully received %d bytes\n", st);
-	}
-}
+// 	printf ("Send data using the xmodem protocol from your terminal emulator now...\n");
+// 	st = xmodemReceive(buff, 65536);
+// 	if (st < 0) {
+// 		printf ("Xmodem receive error: status: %d\n", st);
+// 	}
+// 	else  {
+// 		printf ("Xmodem successfully received %d bytes\n", st);
+// 	}
+// }
 
 void int_command(void){
 	/* register_command("module-name command-name", func-name) */
 	register_command("test cmd", test);
 	register_command("blabla mul", abc);
 	register_command("goto user", jump_command);
-	register_command("get app", get_app);
+//	register_command("get app", get_app);
 }
 
 int run_command(char* cmd_string)

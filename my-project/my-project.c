@@ -10,6 +10,9 @@
 
 FILE *fp;
 
+extern volatile uint32_t system_s;
+void systick_setup(void);
+
 static void clock_setup(void)
 {
 	rcc_clock_setup_pll(&rcc_hse_8mhz_3v3[RCC_CLOCK_3V3_84MHZ]);
@@ -39,15 +42,20 @@ int main(void)
 	int i, j = 0;
 	char local_buf[100];
 	char* local_ptr;
+	uint32_t old_system_s = 0;
 	int_command();
 	clock_setup();
+	systick_setup();
 	gpio_setup();
 	fp = usart_setup(USART2);
 	/* Blink the LED (PD13, PD15) on the board with every transmitted byte. */
 	gpio_set(GPIOD,GPIO13);
 	gpio_clear(GPIOC, GPIO15);
 	while (1) {
-		gpio_toggle(GPIOD, GPIO13 | GPIO15);	/* LED on/off */
+		if(old_system_s != system_s) {
+			gpio_toggle(GPIOD, GPIO13 | GPIO15);	/* LED on/off */
+			old_system_s = system_s;
+		}
 		printf("Please enter your messages\n");
 		fprintf(fp, "\n\rEnter your messages: ");
 		fflush(fp);
