@@ -3,12 +3,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-//#include <libopencmsis/core_cm3.h>
+#include <unistd.h>
+#include <termios.h> /* POSIX Terminal Control Definitions */
+#include "uart.h"
 
 #define register_command(cmd, func) \
 command[command_index].command_string = cmd; \
 command[command_index].execution = &func; \
 command_index++
+
+#define test_code 0
+extern FILE *fp;
+extern int serial_port;
+extern char **global_argv;
+extern int global_argc;
 
 // Support up to 10 command
 struct {char* command_string; void (*execution)(int, char **);} command [10];
@@ -16,16 +24,9 @@ uint8_t command_index = 0;
 void int_command(void);
 int run_command(char* cmd_string);
 
-#define test_code 0
-#if (test_code == 1)
-#define fp stdout
-#else
-extern FILE *fp;
-#endif
-
 void multiplication(int a, int b);
 void multiplication(int a, int b){
-	fprintf(fp, "Multiplication result: %hi\n\r",a*b);
+	printf("Multiplication result: %hi\n\r",a*b);
 }
 
 static void test(int argc, char **argv);
@@ -40,7 +41,7 @@ static void abc(int argc, char **argv);
 static void abc(int argc, char **argv){
 	printf("In command name: %s\n", argv[0]);
 	multiplication(atoi(argv[1]), atoi(argv[2]));
-	if(argc != 3) fprintf(fp, "Warning: Only support 2 arguments\n\r");
+	if(argc != 3) printf("Warning: Only support 2 arguments\n\r");
 }
 
 void goto_user_app(uint32_t address);
@@ -63,17 +64,58 @@ void jump_command(int argc, char **argv)
 {
 //	printf("Hexa to uint: %hu\n", (uint32_t)strtol(argv[1], NULL, 0));
 	goto_user_app(strtol(argv[1], NULL, 0));
-	if(argc != 2) fprintf(fp, "Warning: Only support 1 arguments\n\r");
+	if(argc != 2) printf("Warning: Only support 1 arguments\n\r");
 }
 
 //int xmodemReceive(unsigned char *dest, int destsz);
-void get_app(int argc, char **argv);
-void get_app(int argc, char **argv)
-{
-//	char* buff = malloc(65536);
 
-	fprintf (fp, "Please send your app ...\n");
-//	free(buff);
+// void get_app(int argc, char **argv)
+// {
+// 	char* buff = malloc(65536);
+// 	int st;
+
+// 	printf ("Send data using the xmodem protocol from your terminal emulator now...\n");
+// 	st = xmodemReceive(buff, 65536);
+// 	if (st < 0) {
+// 		printf ("Xmodem receive error: status: %d\n", st);
+// 	}
+// 	else  {
+// 		printf ("Xmodem successfully received %d bytes\n", st);
+// 	}
+// }
+
+void send_to_uart(int argc, char **argv);
+void send_to_uart(int argc, char **argv)
+{
+	uint8_t bytes_written = 0;
+	char buff[257];
+
+	if(!strcmp(argv[1], "file")) {
+		rewind(fp);
+		fgets(buff, 257, fp);
+		printf("Get %lu byte from test file: %s\n",strlen(buff), buff );
+		bytes_written = write(serial_port, buff, strlen(buff));
+	}
+	else {
+		bytes_written = serialport_write_string(serial_port, argv[1]);
+		printf("\n%d Bytes written to %s ", bytes_written, global_argv[1]);
+		printf("\n+----------------------------------+\n\n");
+
+	        /*------------------------------- Read data from serial port -----------------------------*/
+		memset(buff, 0, 257);
+		tcflush(serial_port, TCIFLUSH);   /* Discards old data in the rx buffer            */
+		bytes_written = 0;
+		bytes_written = read(serial_port, buff, 256);
+		printf("Read %d byte from serial_port: %s\n", bytes_written, buff);
+
+ 	// 	int i = 0;
+		// for(i=0;i<bytes_read;i++)	 printing only the received characters
+		//     printf("%c",read_buffer[i]);
+	
+		printf("\n +----------------------------------+\n\n\n");
+
+//		close(fd); /* Close the serial port */
+	}
 }
 
 void int_command(void){
@@ -81,7 +123,7 @@ void int_command(void){
 	register_command("test cmd", test);
 	register_command("blabla mul", abc);
 	register_command("goto user", jump_command);
-	register_command("get app", get_app);
+	register_command("uart write", send_to_uart);
 }
 
 int run_command(char* cmd_string)
@@ -174,7 +216,7 @@ int run_command(char* cmd_string)
 
 							Syntax_error:
 
-							fprintf(fp, "Command syntax error\r\n");
+							printf("Command syntax error\r\n");
 							goto Restore_the_string;
 						}
 					}
