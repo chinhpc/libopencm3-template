@@ -2,7 +2,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <libopencmsis/core_cm3.h>
+#include <stdbool.h>
+//#include <libopencmsis/core_cm3.h>
 
 #define register_command(cmd, func) \
 command[command_index].command_string = cmd; \
@@ -15,7 +16,7 @@ uint8_t command_index = 0;
 void int_command(void);
 int run_command(char* cmd_string);
 
-#define test_code 0
+#define test_code 1
 #if (test_code == 1)
 #define fp stdout
 #else
@@ -45,23 +46,23 @@ static void abc(int argc, char **argv){
 void goto_user_app(uint32_t address);
 void goto_user_app(uint32_t address)
 {
-	uint32_t *user_vtor = (uint32_t *)address;
-	uint32_t sp = user_vtor[0];
-	uint32_t pc = user_vtor[1];
-	SCB_VTOR = address;
-	__asm__ __volatile__("mov sp,%0\n\t"
-		"bx %1\n\t"
-		: /* no output */
-		: "r" (sp), "r" (pc)
-		: "sp");
+//	uint32_t *user_vtor = (uint32_t *)address;
+//	uint32_t sp = user_vtor[0];
+//	uint32_t pc = user_vtor[1];
+//	SCB_VTOR = address;
+//	__asm__ __volatile__("mov sp,%0\n\t"
+//		"bx %1\n\t"
+//		: /* no output */
+//		: "r" (sp), "r" (pc)
+//		: "sp");
 }
 
 void jump_command(int argc, char **argv);
 void jump_command(int argc, char **argv)
 {
 //	printf("Hexa to uint: %hu\n", (uint32_t)strtol(argv[1], NULL, 0));
-	goto_user_app(strtol(argv[1], NULL, 0));
-	if(argc > 2 || argc < 1) fprintf(fp, "Warning: Only support 1 arguments\n\r");
+//	goto_user_app(strtol(argv[1], NULL, 0));
+	if(argc != 2) fprintf(fp, "Warning: Only support 1 arguments\n\r");
 }
 
 //int xmodemReceive(unsigned char *dest, int destsz);
@@ -97,7 +98,7 @@ int run_command(char* cmd_string)
 	char* enter_ptr;
 	int i;
 	uint8_t len;
-	uint8_t strcmp_result;
+	bool strcmp_result;
 
 	enter_ptr = strchr(cmd_string, '\n');
 	if(enter_ptr != NULL) *enter_ptr = '\0'; // Remove Enter character
@@ -110,11 +111,11 @@ int run_command(char* cmd_string)
 	}
 	printf("String: %s\n", cmd_string);
 	for(i = 0; i < command_index; i++){
-		strcmp_result = strcmp(cmd_string, command[i].command_string);
-		strcmp_result = (strcmp_result > 0) ? !(cmd_string[strlen(command[i].command_string)] == ' ') : strcmp_result;
+		strcmp_result = (strstr(cmd_string, command[i].command_string) == cmd_string) ? true : false;
+		strcmp_result = (strcmp_result) ? ((cmd_string[strlen(command[i].command_string)] == ' ') || (cmd_string[strlen(command[i].command_string)] == '\0')) : strcmp_result;
 		printf("strcmp_result: %hu\n", strcmp_result);
 
-		if(!strcmp_result) {
+		if(strcmp_result) {
 			//Split to multi string
 			char* current_pos;
 			char* offset;
