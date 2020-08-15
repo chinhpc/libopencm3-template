@@ -43,7 +43,7 @@ NULL	:= 2>/dev/null
 endif
 
 # Tool paths.
-PREFIX	?= arm-none-eabi-
+PREFIX	?= /opt/gcc-arm-none-eabi-9-2020-q2-update/bin/arm-none-eabi-
 CC	= $(PREFIX)gcc
 LD	= $(PREFIX)gcc
 OBJCOPY	= $(PREFIX)objcopy
@@ -127,12 +127,27 @@ $(BUILD_DIR)/%.o: %.c
 	@mkdir -p $(dir $@)
 	$(Q)$(CC) $(TGT_CFLAGS) $(CFLAGS) $(TGT_CPPFLAGS) $(CPPFLAGS) -o $@ -c $<
 
+$(BUILD_DIR)/%.o: $(FreeRTOS_DIR)/%.c
+	@printf "  CC\t$<\n"
+	@mkdir -p $(dir $@)
+	$(Q)$(CC) $(TGT_CFLAGS) $(CFLAGS) $(TGT_CPPFLAGS) $(CPPFLAGS) -o $@ -c $<
+
 $(BUILD_DIR)/%.o: %.cxx
 	@printf "  CXX\t$<\n"
 	@mkdir -p $(dir $@)
 	$(Q)$(CC) $(TGT_CXXFLAGS) $(CXXFLAGS) $(TGT_CPPFLAGS) $(CPPFLAGS) -o $@ -c $<
 
+$(BUILD_DIR)/%.o: $(FreeRTOS_DIR)/%.cxx
+	@printf "  CXX\t$<\n"
+	@mkdir -p $(dir $@)
+	$(Q)$(CC) $(TGT_CXXFLAGS) $(CXXFLAGS) $(TGT_CPPFLAGS) $(CPPFLAGS) -o $@ -c $<
+
 $(BUILD_DIR)/%.o: %.S
+	@printf "  AS\t$<\n"
+	@mkdir -p $(dir $@)
+	$(Q)$(CC) $(TGT_ASFLAGS) $(ASFLAGS) $(TGT_CPPFLAGS) $(CPPFLAGS) -o $@ -c $<
+
+$(BUILD_DIR)/%.o: $(FreeRTOS_DIR)/%.S
 	@printf "  AS\t$<\n"
 	@mkdir -p $(dir $@)
 	$(Q)$(CC) $(TGT_ASFLAGS) $(ASFLAGS) $(TGT_CPPFLAGS) $(CPPFLAGS) -o $@ -c $<
@@ -166,9 +181,12 @@ else
 		$(NULL)
 endif
 
+debug:
+	$(Q)xterm -e $(OOCD) -f interface/$(OOCD_INTERFACE).cfg -f target/$(OOCD_TARGET).cfg -c "init" &
+	$(Q)gede
+
 clean:
 	rm -rf $(BUILD_DIR) $(GENERATED_BINS)
 
 .PHONY: all clean flash
 -include $(OBJS:.o=.d)
-
