@@ -46,6 +46,7 @@ endif
 PREFIX	?= /opt/gcc-arm-none-eabi-9-2020-q2-update/bin/arm-none-eabi-
 CC	= $(PREFIX)gcc
 LD	= $(PREFIX)gcc
+SZ	= $(PREFIX)size
 OBJCOPY	= $(PREFIX)objcopy
 OBJDUMP	= $(PREFIX)objdump
 OOCD	?= openocd
@@ -107,7 +108,7 @@ LDLIBS += -Wl,--start-group -lc -lgcc -lnosys -Wl,--end-group
 %: s.%
 %: SCCS/s.%
 
-all: $(PROJECT).elf $(PROJECT).bin
+all: size
 flash: $(PROJECT).flash
 
 # error if not using linker script generator
@@ -165,6 +166,12 @@ $(PROJECT).elf: $(OBJS) $(LDSCRIPT) $(LIBDEPS)
 
 %.list: %.elf
 	$(OBJDUMP) -S $< > $@
+
+size: $(PROJECT).elf
+	@printf '\n'
+	$(Q)$(SZ) $<
+	@printf '\n'
+	@echo 'Finished building: $<'
 
 %.flash: %.elf
 	@printf "  FLASH\t$<\n"
