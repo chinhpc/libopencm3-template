@@ -43,9 +43,10 @@ NULL	:= 2>/dev/null
 endif
 
 # Tool paths.
-PREFIX	?= arm-none-eabi-
+PREFIX	?= $(dir $(wildcard /opt/gcc-arm-none-eabi*/bin/arm-none-eabi-gcc))arm-none-eabi-
 CC	= $(PREFIX)gcc
 LD	= $(PREFIX)gcc
+SZ	= $(PREFIX)size
 OBJCOPY	= $(PREFIX)objcopy
 OBJDUMP	= $(PREFIX)objdump
 OOCD	?= openocd
@@ -107,7 +108,7 @@ LDLIBS += -Wl,--start-group -lc -lgcc -lnosys -Wl,--end-group
 %: s.%
 %: SCCS/s.%
 
-all: $(PROJECT).elf $(PROJECT).bin
+all: $(PROJECT).bin
 flash: $(PROJECT).flash
 
 # error if not using linker script generator
@@ -127,7 +128,17 @@ $(BUILD_DIR)/%.o: %.c
 	@mkdir -p $(dir $@)
 	$(Q)$(CC) $(TGT_CFLAGS) $(CFLAGS) $(TGT_CPPFLAGS) $(CPPFLAGS) -o $@ -c $<
 
+$(BUILD_DIR)/%.o: $(FreeRTOS_DIR)/%.c
+	@printf "  CC\t$<\n"
+	@mkdir -p $(dir $@)
+	$(Q)$(CC) $(TGT_CFLAGS) $(CFLAGS) $(TGT_CPPFLAGS) $(CPPFLAGS) -o $@ -c $<
+
 $(BUILD_DIR)/%.o: %.cxx
+	@printf "  CXX\t$<\n"
+	@mkdir -p $(dir $@)
+	$(Q)$(CC) $(TGT_CXXFLAGS) $(CXXFLAGS) $(TGT_CPPFLAGS) $(CPPFLAGS) -o $@ -c $<
+
+$(BUILD_DIR)/%.o: $(FreeRTOS_DIR)/%.cxx
 	@printf "  CXX\t$<\n"
 	@mkdir -p $(dir $@)
 	$(Q)$(CC) $(TGT_CXXFLAGS) $(CXXFLAGS) $(TGT_CPPFLAGS) $(CPPFLAGS) -o $@ -c $<
@@ -137,19 +148,32 @@ $(BUILD_DIR)/%.o: %.S
 	@mkdir -p $(dir $@)
 	$(Q)$(CC) $(TGT_ASFLAGS) $(ASFLAGS) $(TGT_CPPFLAGS) $(CPPFLAGS) -o $@ -c $<
 
+$(BUILD_DIR)/%.o: $(FreeRTOS_DIR)/%.S
+	@printf "  AS\t$<\n"
+	@mkdir -p $(dir $@)
+	$(Q)$(CC) $(TGT_ASFLAGS) $(ASFLAGS) $(TGT_CPPFLAGS) $(CPPFLAGS) -o $@ -c $<
+
 $(PROJECT).elf: $(OBJS) $(LDSCRIPT) $(LIBDEPS)
 	@printf "  LD\t$@\n"
 	$(Q)$(LD) $(TGT_LDFLAGS) $(LDFLAGS) $(OBJS) $(LDLIBS) -o $@
 
-%.bin: %.elf
+%.bin: %.elf size
 	@printf "  OBJCOPY\t$@\n"
 	$(Q)$(OBJCOPY) -O binary  $< $@
+	@printf '\n'
 
 %.lss: %.elf
 	$(OBJDUMP) -h -S $< > $@
 
 %.list: %.elf
 	$(OBJDUMP) -S $< > $@
+
+size: $(PROJECT).elf
+	@printf '\n'
+	$(Q)$(SZ) $<
+	@printf '\n'
+	@echo 'Finished building: $<'
+	@printf '\n'
 
 %.flash: %.elf
 	@printf "  FLASH\t$<\n"
@@ -166,9 +190,12 @@ else
 		$(NULL)
 endif
 
+debug:
+	$(Q)xterm -e $(OOCD) -f interface/$(OOCD_INTERFACE).cfg -f target/$(OOCD_TARGET).cfg -c "init" &
+	$(Q)gede
+
 clean:
 	rm -rf $(BUILD_DIR) $(GENERATED_BINS)
 
-.PHONY: all clean flash
+.PHONY: all clean flash debug
 -include $(OBJS:.o=.d)
-

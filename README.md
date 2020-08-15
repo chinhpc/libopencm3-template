@@ -9,7 +9,6 @@ Easy "clone and go" repository for a libopencm3 based project.
 
 # Directories
 * my-project contains your application
-* my-common-code contains something shared.
 
 # As a template
 You should replace this with your _own_ README if you are using this

@@ -21,6 +21,10 @@ jobs:
       run: sudo apt install gcc-arm-none-eabi
     - uses: actions/checkout@v2
     - name: Configure
-      run: git submodule update --init
+      run: git submodule update --init --recursive
     - name: Make
-      run: make -C my-project
+      run: make
+    - uses: actions/upload-artifact@v2
+      with:
+       name: binary-file
+       path: f030f4p6/STM32F030F4P6.bin
