@@ -21,6 +21,13 @@ PROJECT := STM32F030F4P6
 BUILD_DIR := build
 CFILES :=
 
+PARALLEL_MAKE := $(shell nproc)
+MAKEFLAGS += -j$(PARALLEL_MAKE)
+
+$(info 	)
+$(info [*****	MAKEFLAGS = ${MAKEFLAGS}	*****])
+$(info 	)
+
 # TODO - you will need to edit these two lines!
 DEVICE=stm32f030f4p6
 OOCD_INTERFACE=stlink-v2

@@ -191,8 +191,12 @@ else
 endif
 
 debug:
+ifeq ($(shell uname -s),Linux)
 	$(Q)xterm -e $(OOCD) -f interface/$(OOCD_INTERFACE).cfg -f target/$(OOCD_TARGET).cfg -c "init" &
 	$(Q)gede
+else
+	$(Q)$(OOCD) -f interface/$(OOCD_INTERFACE).cfg -f target/$(OOCD_TARGET).cfg -c init -c "reset init" -c halt
+endif
 
 clean:
 	rm -rf $(BUILD_DIR) $(GENERATED_BINS)
